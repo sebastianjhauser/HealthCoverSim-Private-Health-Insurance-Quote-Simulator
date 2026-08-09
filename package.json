@@ -1,5 +1,25 @@
 {
   "dependencies": {
     "better-sqlite3": "^13.0.3"
-  }
+  },
+  "name": "assessment-1",
+  "version": "1.0.0",
+  "description": "HealthCoverSim - Private Health Insurance Quote Simulator",
+  "main": "db.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sebastianjhauser/HealthCoverSim-Private-Health-Insurance-Quote-Simulator.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/sebastianjhauser/HealthCoverSim-Private-Health-Insurance-Quote-Simulator/issues"
+  },
+  "homepage": "https://github.com/sebastianjhauser/HealthCoverSim-Private-Health-Insurance-Quote-Simulator#readme"
 }
