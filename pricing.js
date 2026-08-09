@@ -11,10 +11,6 @@ function checkWarning(label, coverHistory) {
 }
 
 function calculateApplicant(label, age, coverHistory, hospitalTier, hospitalTierPrice) {
-    // Checked by tier name, not by price === 0, so a future $0 tier (e.g. a promo)
-    // doesn't accidentally get treated as "no cover".
-    // Warning is still checked even with no hospital cover, matching original behavior:
-    // an unknown cover history is worth flagging regardless of the tier chosen.
     if (hospitalTier === "None") {
         return {label, loadingPercentage: 0, hospitalPremium: 0, warning: checkWarning(label, coverHistory)};
     }
