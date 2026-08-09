@@ -56,15 +56,7 @@ function calculateQuote(quote) {
     }
 
     return {
-        hospitalTotal,
-        extrasTotal,
-        familyFee,
-        monthlyPremium,
-        yearlyBeforeDiscount,
-        yearlyAfterDiscount,
-        applicantLoadings: applicants.map(({label, loadingPercentage}) => ({label, loadingPercentage})),
-        warnings,
-        lhcStatement: LHC_STATEMENT
+        hospitalTotal, extrasTotal, familyFee, monthlyPremium, yearlyBeforeDiscount, yearlyAfterDiscount, applicantLoadings: applicants.map(({label, loadingPercentage}) => ({label, loadingPercentage})), warnings, lhcStatement: LHC_STATEMENT
     };
 }
 

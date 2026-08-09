@@ -1,6 +1,3 @@
-// db.js
-// Opens quotes.db in this folder, creating it (and the table) on first run.
-
 const path = require('path');
 const Database = require('better-sqlite3');
 
