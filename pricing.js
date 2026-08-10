@@ -3,60 +3,68 @@ const EXTRAS_PRICES = {None: 0, Basic: 25, Standard: 45, Premium: 70};
 const FAMILY_FEE = 30;
 const LHC_STATEMENT = 'Lifetime Health Cover loading applies only to hospital cover. It does not apply to extras cover.';
 
-function checkWarning(label, coverHistory) {
-    if (coverHistory === "Not sure") {
-        return `${label}: Cover history is unknown. LHC loading has not been applied.`;
+function checkWarning(applicant_number, cover_history) {
+    if (cover_history === "Not sure") {
+        return `Applicant ${applicant_number}: Cover history is unknown - LHC loading has not been applied. This quote may be inaccurate.`;
     }
     return null;
 }
 
-function calculateApplicant(label, age, coverHistory, hospitalTier, hospitalTierPrice) {
-    if (hospitalTier === "None") {
-        return {label, loadingPercentage: 0, hospitalPremium: 0, warning: checkWarning(label, coverHistory)};
+function calculateApplicant(applicant_number, age, cover_history, hospital_tier, hospital_tier_price) {
+    if (hospital_tier === "None") {
+        return {applicant_number, loading_percent: 0, hospital_premium: 0, warning: checkWarning(applicant_number, cover_history)};
     }
 
-    let loadingPercentage = 0;
-    if (coverHistory === "No" && age > 30) {
-        loadingPercentage = (age - 30) * 2;
+    let loading_percent = 0;
+    if (cover_history === "No" && age > 30) {
+        loading_percent = (age - 30) * 2;
     }
 
-    const hospitalPremium = hospitalTierPrice * (1 + loadingPercentage / 100);
-    return {label, loadingPercentage, hospitalPremium, warning: checkWarning(label, coverHistory)};
+    const hospital_premium = hospital_tier_price * (1 + loading_percent / 100);
+    return {applicant_number, loading_percent, hospital_premium, warning: checkWarning(applicant_number, cover_history)};
 }
 
 function calculateQuote(quote) {
-    const hospitalTierPrice = HOSPITAL_PRICES[quote.hospitalCover];
-    const extrasTierPrice = EXTRAS_PRICES[quote.extrasCover];
+    const hospital_tier_price = HOSPITAL_PRICES[quote.hospital_cover];
+    const extras_tier_price = EXTRAS_PRICES[quote.extras_cover];
 
     const applicants = [];
-    if (quote.coverType === "Single") {
-        applicants.push(calculateApplicant("Applicant 1", quote.applicant1Age, quote.applicant1CoverHistory, quote.hospitalCover, hospitalTierPrice));
+    if (quote.cover_type === "Single") {
+        applicants.push(calculateApplicant(1, quote.applicant1_age, quote.applicant1_cover_history, quote.hospital_cover, hospital_tier_price));
     } else {
-        applicants.push(calculateApplicant("Applicant 1", quote.applicant1Age, quote.applicant1CoverHistory, quote.hospitalCover, hospitalTierPrice));
-        applicants.push(calculateApplicant("Applicant 2", quote.applicant2Age, quote.applicant2CoverHistory, quote.hospitalCover, hospitalTierPrice));
+        applicants.push(calculateApplicant(1, quote.applicant1_age, quote.applicant1_cover_history, quote.hospital_cover, hospital_tier_price));
+        applicants.push(calculateApplicant(2, quote.applicant2_age, quote.applicant2_cover_history, quote.hospital_cover, hospital_tier_price));
     }
 
-    let hospitalTotal = 0;
+    let hospital_total = 0;
     const warnings = [];
     for (const a of applicants) {
-        hospitalTotal += a.hospitalPremium;
+        hospital_total += a.hospital_premium;
         if (a.warning) warnings.push(a.warning);
     }
 
-    const adultCount = quote.coverType === "Single" ? 1 : 2;
-    const extrasTotal = extrasTierPrice * adultCount;
-    const familyFee = quote.coverType === "Family" ? FAMILY_FEE : 0;
+    const adult_count = quote.cover_type === "Single" ? 1 : 2;
+    const extras_total = extras_tier_price * adult_count;
+    const family_fee = quote.cover_type === "Family" ? FAMILY_FEE : 0;
 
-    const monthlyPremium = hospitalTotal + extrasTotal + familyFee;
-    const yearlyBeforeDiscount = monthlyPremium * 12;
+    const monthly_premium = hospital_total + extras_total + family_fee;
+    const yearly_before_discount = monthly_premium * 12;
 
-    let yearlyAfterDiscount = null;
-    if (quote.paymentFrequency === "Yearly") {
-        yearlyAfterDiscount = yearlyBeforeDiscount * (1 - quote.annualDiscount / 100);
+    let yearly_after_discount = null;
+    if (quote.payment_frequency === "Yearly") {
+        yearly_after_discount = yearly_before_discount * (1 - quote.annual_discount / 100);
     }
 
     return {
-        hospitalTotal, extrasTotal, familyFee, monthlyPremium, yearlyBeforeDiscount, yearlyAfterDiscount, applicantLoadings: applicants.map(({label, loadingPercentage}) => ({label, loadingPercentage})), warnings, lhcStatement: LHC_STATEMENT
+        hospital_total,
+        extras_total,
+        family_fee,
+        monthly_premium,
+        yearly_before_discount,
+        yearly_after_discount,
+        applicant_loadings: applicants.map(({applicant_number, loading_percent}) => ({applicant_number, loading_percent})),
+        warnings,
+        lhc_statement: LHC_STATEMENT
     };
 }
 

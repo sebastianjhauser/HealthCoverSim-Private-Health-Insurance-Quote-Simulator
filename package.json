@@ -1,14 +1,16 @@
 {
   "dependencies": {
-    "better-sqlite3": "^13.0.3"
+    "better-sqlite3": "^13.0.3",
+    "cors": "^2.8.6",
+    "express": "^5.2.1"
   },
   "name": "assessment-1",
   "version": "1.0.0",
   "description": "HealthCoverSim - Private Health Insurance Quote Simulator",
-  "main": "db.js",
-  "devDependencies": {},
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
   },
   "repository": {
     "type": "git",
