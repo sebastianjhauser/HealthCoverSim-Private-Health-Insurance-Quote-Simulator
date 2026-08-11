@@ -1,0 +1,42 @@
+body {
+  font-family: sans-serif;
+  max-width: 600px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  color: #222;
+}
+
+h1, h2 {
+  margin-top: 1.5rem;
+}
+
+label {
+  font-weight: bold;
+}
+
+input, select, textarea {
+  display: block;
+  margin-top: 0.25rem;
+  margin-bottom: 1rem;
+  padding: 0.4rem;
+  width: 100%;
+  max-width: 300px;
+  box-sizing: border-box;
+}
+
+button {
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+}
+
+ul {
+  padding-left: 1rem;
+}
+
+li {
+  margin-bottom: 0.5rem;
+}
+
+a {
+  color: #0055aa;
+}
