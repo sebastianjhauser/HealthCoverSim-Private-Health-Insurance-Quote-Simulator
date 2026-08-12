@@ -76,9 +76,9 @@ function calculateQuote(quote) {
         yearly_after_discount = yearly_before_discount * (1 - quote.annual_discount / 100);
     }
 
-    const applicant_lhc = [];
+    const applicant_loadings = [];
     for (const a of applicants) {
-        applicant_lhc.push({applicant_number: a.applicant_number, loading_percent: a.loading_percent});
+        applicant_loadings.push({applicant_number: a.applicant_number, loading_percent: a.loading_percent});
     }
 
     return {
@@ -88,7 +88,7 @@ function calculateQuote(quote) {
         monthly_premium,
         yearly_before_discount,
         yearly_after_discount,
-        applicant_lhc,
+        applicant_loadings,
         warnings,
         lhc_statement: LHC_STATEMENT
     };
