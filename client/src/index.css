@@ -3,7 +3,7 @@ body {
   max-width: 600px;
   margin: 2rem auto;
   padding: 0 1rem;
-  color: #222;
+  color: #000000;
 }
 
 h1, h2 {
@@ -16,8 +16,7 @@ label {
 
 input, select, textarea {
   display: block;
-  margin-top: 0.25rem;
-  margin-bottom: 1rem;
+  margin: 0.25rem 0 1rem;
   padding: 0.4rem;
   width: 100%;
   max-width: 300px;
@@ -35,8 +34,4 @@ ul {
 
 li {
   margin-bottom: 0.5rem;
-}
-
-a {
-  color: #0055aa;
 }

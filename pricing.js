@@ -1,11 +1,10 @@
-// Base prices, per adult, per month - straight from the spec's pricing tables.
+//base prices
 const HOSPITAL_PRICES = {None: 0, Basic: 90, Bronze: 120, Silver: 160, Gold: 220};
 const EXTRAS_PRICES = {None: 0, Basic: 25, Standard: 45, Premium: 70};
 const FAMILY_FEE = 30;
 const LHC_STATEMENT = 'Lifetime Health Cover loading applies only to hospital cover. It does not apply to extras cover.';
 
-// Returns a warning message if this applicant's cover history is unknown,
-// otherwise returns null (no warning to show).
+//returns warning message if applicant's cover history is unknown
 function checkWarning(applicant_number, cover_history) {
     if (cover_history === "Not sure") {
         return `Applicant ${applicant_number}: Cover history is unknown - LHC loading has not been applied. This quote may be inaccurate.`;

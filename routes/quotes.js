@@ -20,7 +20,12 @@ const FREQUENCIES = ['Monthly', 'Yearly'];
 function validateQuote(body) {
   const errors = [];
 
-  if (!body.customer_name || !body.customer_name.trim()) {
+  if (!body || typeof body !== 'object') {
+    errors.push('Request body is missing or invalid.');
+    return errors;
+  }
+
+  if (typeof body.customer_name !== 'string' || !body.customer_name.trim()) {
     errors.push('Customer name is required.');
   }
   if (!COVER_TYPES.includes(body.cover_type)) {
