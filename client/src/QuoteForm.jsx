@@ -20,10 +20,19 @@ function QuoteForm() {
     notes: '',
   })
 
+  // Holds validation/API error messages to show above the form.
+  const [errors, setErrors] = useState([])
+
+  // If we're editing, load the existing quote and fill the form with it.
+  // Runs once when the page loads (or if the id in the URL changes).
   useEffect(() => {
     if (!isEditing) return
+
     fetch(`/api/quotes/${id}`)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error('Could not load this quote.')
+        return res.json()
+      })
       .then(data => {
         setForm({
           customer_name: data.customer_name,
@@ -39,22 +48,61 @@ function QuoteForm() {
           notes: data.notes ?? '',
         })
       })
+      .catch(err => setErrors([err.message]))
   }, [id, isEditing])
 
+  // One handler for every input/select - it reads the field's "name"
+  // attribute and updates just that key in the form state.
   function handleChange(e) {
     const { name, value } = e.target
     setForm(prev => ({ ...prev, [name]: value }))
   }
 
+  // Mirrors the backend's validateQuote() in routes/quotes.js.
+  // Runs before we submit, so the user gets instant feedback instead
+  // of waiting on a round trip to the API just to be told "age invalid".
+  function validate(body) {
+    const errs = []
+
+    if (!body.customer_name.trim()) {
+      errs.push('Customer name is required.')
+    }
+
+    if (!Number.isFinite(body.applicant1_age) || body.applicant1_age < 18 || body.applicant1_age > 100) {
+      errs.push('Applicant 1 age must be between 18 and 100.')
+    }
+
+    if (body.cover_type !== 'Single') {
+      if (!Number.isFinite(body.applicant2_age) || body.applicant2_age < 18 || body.applicant2_age > 100) {
+        errs.push('Applicant 2 age is required and must be between 18 and 100.')
+      }
+    }
+
+    if (!Number.isFinite(body.annual_discount) || body.annual_discount < 0 || body.annual_discount > 10) {
+      errs.push('Annual discount must be between 0 and 10.')
+    }
+
+    return errs
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
 
+    // Convert the text-input numbers from strings to actual numbers,
+    // and clear Applicant 2 fields entirely when cover type is Single
+    // (matches what the backend expects to store).
     const body = {
       ...form,
       applicant1_age: Number(form.applicant1_age),
       annual_discount: Number(form.annual_discount),
       applicant2_age: form.cover_type === 'Single' ? null : Number(form.applicant2_age),
       applicant2_cover_history: form.cover_type === 'Single' ? null : form.applicant2_cover_history,
+    }
+
+    const validationErrors = validate(body)
+    if (validationErrors.length > 0) {
+      setErrors(validationErrors)
+      return
     }
 
     const res = await fetch(isEditing ? `/api/quotes/${id}` : '/api/quotes', {
@@ -67,13 +115,19 @@ function QuoteForm() {
       navigate(isEditing ? `/quotes/${id}` : '/')
     } else {
       const data = await res.json()
-      alert(data.errors.join('\n'))
+      setErrors(data.errors)
     }
   }
 
   return (
     <form onSubmit={handleSubmit}>
       <h1>{isEditing ? 'Edit Quote' : 'New Quote'}</h1>
+
+      {errors.length > 0 && (
+        <ul>
+          {errors.map((err, i) => <li key={i}>{err}</li>)}
+        </ul>
+      )}
 
       <div><label>Customer name</label><br />
         <input name="customer_name" value={form.customer_name} onChange={handleChange} />
@@ -99,6 +153,7 @@ function QuoteForm() {
         </select>
       </div>
 
+      {/* Applicant 2 fields only show for Couple/Family - spec Section 11 */}
       {form.cover_type !== 'Single' && (
         <>
           <div><label>Applicant 2 age</label><br />
@@ -141,6 +196,7 @@ function QuoteForm() {
         </select>
       </div>
 
+      {/* Discount only matters when paying Yearly - spec Section 5 */}
       {form.payment_frequency === 'Yearly' && (
         <div><label>Annual discount %</label><br />
           <input type="number" name="annual_discount" value={form.annual_discount} onChange={handleChange} />
