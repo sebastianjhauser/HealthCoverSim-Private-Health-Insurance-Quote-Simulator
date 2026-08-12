@@ -1,22 +1,18 @@
-// All /api/quotes endpoints. This router is mounted at '/api/quotes' in
-// server.js, so every path below is RELATIVE to that prefix:
-//   router.get('/')     -> GET  /api/quotes
-//   router.get('/:id')  -> GET  /api/quotes/:id
+//validation, CRUD routes, calling pricing
 
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const {calculateQuote} = require('../pricing');
 
+//valid values for each field
 const HOSPITAL_TIERS = ['None', 'Basic', 'Bronze', 'Silver', 'Gold'];
 const EXTRAS_TIERS = ['None', 'Basic', 'Standard', 'Premium'];
 const HISTORY_VALUES = ['Yes', 'No', 'Not sure'];
 const COVER_TYPES = ['Single', 'Couple', 'Family'];
 const FREQUENCIES = ['Monthly', 'Yearly'];
 
-// Checks one quote submission against every rule in spec Section 9.
-// Returns an array of error strings — empty array means valid.
-// Used by both POST (create) and PUT (update), since both accept the same shape.
+//backend validation - post & put
 function validateQuote(body) {
   const errors = [];
 
@@ -41,6 +37,8 @@ function validateQuote(body) {
     errors.push('Payment frequency must be Monthly or Yearly.');
   }
 
+  //applicant 1 
+  //always required
   if (!Number.isFinite(body.applicant1_age) || body.applicant1_age < 18 || body.applicant1_age > 100) {
     errors.push('Applicant 1 age must be between 18 and 100.');
   }
@@ -48,6 +46,8 @@ function validateQuote(body) {
     errors.push('Applicant 1 cover history must be Yes, No or Not sure.');
   }
 
+  //applicant 2
+  //only required for couple or family
   if (body.cover_type === 'Couple' || body.cover_type === 'Family') {
     if (!Number.isFinite(body.applicant2_age) || body.applicant2_age < 18 || body.applicant2_age > 100) {
       errors.push('Applicant 2 age is required and must be between 18 and 100 for Couple/Family.');
@@ -57,8 +57,6 @@ function validateQuote(body) {
     }
   }
 
-  // annual_discount is optional on the request - if it's missing, treat it
-  // as 0 for the purposes of this check.
   let discount = body.annual_discount;
   if (discount === undefined) {
     discount = 0;
@@ -66,15 +64,10 @@ function validateQuote(body) {
   if (!Number.isFinite(discount) || discount < 0 || discount > 10) {
     errors.push('Annual discount must be between 0 and 10.');
   }
-
   return errors;
 }
 
-// A few fields are optional depending on cover type (applicant2_*) or just
-// optional in general (annual_discount, notes). This turns a request body
-// into the exact set of values the database needs, filling in defaults for
-// anything missing. Both POST and PUT need this, so it lives in one place
-// instead of being copy-pasted into each route.
+//format request into object database is expecting
 function buildQuoteValues(body) {
   let applicant2_age = null;
   if (body.applicant2_age !== undefined && body.applicant2_age !== null) {
@@ -95,7 +88,6 @@ function buildQuoteValues(body) {
   if (body.notes !== undefined && body.notes !== null) {
     notes = body.notes;
   }
-
   return {
     customer_name: body.customer_name,
     cover_type: body.cover_type,
@@ -111,17 +103,17 @@ function buildQuoteValues(body) {
   };
 }
 
-// CREATE  ->  POST /api/quotes
+//POST
 router.post('/', function (req, res) {
+
+  //validate request and return errors
   const errors = validateQuote(req.body);
   if (errors.length > 0) {
     return res.status(400).json({errors: errors});
   }
-
   const values = buildQuoteValues(req.body);
 
-  // The @name placeholders below are matched up against the object's keys
-  // (e.g. @customer_name reads values.customer_name) when we call stmt.run().
+  //key value pairs
   const stmt = db.prepare(`
     INSERT INTO quotes (
       customer_name, cover_type, applicant1_age, applicant1_cover_history,
@@ -136,16 +128,17 @@ router.post('/', function (req, res) {
 
   const result = stmt.run(values);
 
+  //return the id of new quote
   res.status(201).json({id: result.lastInsertRowid});
 });
 
-// LIST  ->  GET /api/quotes
+//GET - all quotes for list
 router.get('/', function (req, res) {
   const rows = db.prepare('SELECT * FROM quotes ORDER BY id DESC').all();
   res.json(rows);
 });
 
-// DETAIL  ->  GET /api/quotes/:id  — the only route that calls pricing.js
+//GET - single quote by id
 router.get('/:id', function (req, res) {
   const row = db.prepare('SELECT * FROM quotes WHERE id = ?').get(req.params.id);
   if (!row) {
@@ -159,13 +152,14 @@ router.get('/:id', function (req, res) {
   res.json({...row, breakdown: breakdown});
 });
 
-// UPDATE  ->  PUT /api/quotes/:id
+//PUT
 router.put('/:id', function (req, res) {
   const existing = db.prepare('SELECT id FROM quotes WHERE id = ?').get(req.params.id);
   if (!existing) {
     return res.status(404).json({errors: ['Quote not found.']});
   }
 
+  //dupe from POST
   const errors = validateQuote(req.body);
   if (errors.length > 0) {
     return res.status(400).json({errors: errors});
@@ -193,7 +187,7 @@ router.put('/:id', function (req, res) {
   res.json({updated: true});
 });
 
-// DELETE  ->  DELETE /api/quotes/:id
+//DELETE
 router.delete('/:id', function (req, res) {
   const result = db.prepare('DELETE FROM quotes WHERE id = ?').run(req.params.id);
   if (result.changes === 0) {

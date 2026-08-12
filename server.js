@@ -3,17 +3,13 @@ const quoteRoutes = require('./routes/quotes');
 
 const app = express();
 
-// Without this, Express won't parse JSON request bodies - req.body would
-// be undefined for every POST/PUT request from the frontend.
+//allow parsing of JSON in requests
 app.use(express.json());
 
-// Any request to /api/quotes/... gets handled by the routes defined
-// in routes/quotes.js (the actual GET/POST/PUT/DELETE logic).
+//mount the quote routes at /api/quotes
 app.use('/api/quotes', quoteRoutes);
 
-// Render (and most hosts) set PORT themselves in production. 3001 is
-// just the fallback used when running locally.
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  console.log(`HealthCoverSim API running on http://localhost:${PORT}`);
+  console.log(`HealthCoverSim running on http://localhost:${PORT}`);
 });
