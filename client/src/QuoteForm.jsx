@@ -6,6 +6,7 @@ function QuoteForm() {
   const { id } = useParams()
   const isEditing = Boolean(id)
 
+  //form default values
   const [form, setForm] = useState({
     customer_name: '',
     cover_type: 'Single',
@@ -20,15 +21,15 @@ function QuoteForm() {
     notes: '',
   })
 
-  //holds validation/api error messages to show above the form
+  //holds validation errors to display at top of page
   const [errors, setErrors] = useState([])
 
-  //true when cover type is single, used in a few places below
   const isSingle = form.cover_type === 'Single'
 
   useEffect(() => {
     if (!isEditing) return
 
+    //load and populate form if editing
     async function loadQuote() {
       try {
         const res = await fetch(`/api/quotes/${id}`)
@@ -57,18 +58,17 @@ function QuoteForm() {
     loadQuote()
   }, [id, isEditing])
 
-  //updates the matching field in form state when any input changes
+  //updates form state as user types so the input reflects what they enter
   function handleChange(e) {
     const { name, value } = e.target
     setForm(prev => ({ ...prev, [name]: value }))
   }
 
-  //checks an age is between 18 and 100
   function isValidAge(age) {
     return Number.isFinite(age) && age >= 18 && age <= 100
   }
 
-  //checks the form before submitting, mirrors the backend's validation
+  //on sumbit
   function validate(body) {
     const errs = []
 
@@ -91,7 +91,7 @@ function QuoteForm() {
   async function handleSubmit(e) {
     e.preventDefault()
 
-    //converts strings to numbers and clears applicant 2 fields if single
+    //converts string to number and clears applicant 2 fields if single
     const body = {
       ...form,
       applicant1_age: Number(form.applicant1_age),
@@ -100,12 +100,14 @@ function QuoteForm() {
       applicant2_cover_history: isSingle ? null : form.applicant2_cover_history,
     }
 
+    //call validate
     const validationErrors = validate(body)
     if (validationErrors.length > 0) {
       setErrors(validationErrors)
       return
     }
 
+    //send form to backend
     const res = await fetch(isEditing ? `/api/quotes/${id}` : '/api/quotes', {
       method: isEditing ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -159,7 +161,7 @@ function QuoteForm() {
         </select>
       </div>
 
-      {/* applicant 2 fields only show for couple/family */}
+      {/*applicant 2 fields only show for couple/family*/}
       {!isSingle && (
         <>
           <div><label>Applicant 2 age</label><br />
@@ -202,7 +204,7 @@ function QuoteForm() {
         </select>
       </div>
 
-      {/* discount only matters when paying yearly */}
+      {/*discount only when paying yearly*/}
       {form.payment_frequency === 'Yearly' && (
         <div><label>Annual discount %</label><br />
           <input type="number" name="annual_discount" value={form.annual_discount} onChange={handleChange} />

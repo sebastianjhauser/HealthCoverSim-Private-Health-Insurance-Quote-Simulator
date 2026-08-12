@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router'
 
 function QuoteList() {
+  //list of quotes
   const [quotes, setQuotes] = useState([])
 
-  //[] means "run once, when the page first loads"
+  //load quotes on first render
   useEffect(() => {
     async function loadQuotes() {
       const res = await fetch('/api/quotes')

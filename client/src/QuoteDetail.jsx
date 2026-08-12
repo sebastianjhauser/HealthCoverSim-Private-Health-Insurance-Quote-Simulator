@@ -24,10 +24,10 @@ function QuoteDetail() {
     }
 
     loadQuote()
-  }, [id])
+  },[id])
 
   async function handleDelete() {
-    const res = await fetch(`/api/quotes/${id}`, { method: 'DELETE' })
+    const res = await fetch(`/api/quotes/${id}`, {method: 'DELETE'})
     if (res.ok) {
       navigate('/')
     } else {
@@ -35,6 +35,7 @@ function QuoteDetail() {
     }
   }
 
+  //if the quote can't be loaded display error message
   if (error) {
     return (
       <div>
@@ -44,16 +45,17 @@ function QuoteDetail() {
     )
   }
 
+  //if the quote is still loading, display a loading message
   if (!quote) return <div>Loading...</div>
 
+  //breakdown of the premium calculation
   const b = quote.breakdown
 
-  //formats a number as a dollar amount with 2 decimals
   function money(amount) {
     return amount.toFixed(2)
   }
 
-  //plain-english explanation of how the premium was calculated
+  //breakdown of calculation
   let explanation = `Hospital cover ($${money(b.hospital_total)}) and extras cover ($${money(b.extras_total)}) `
     + 'are calculated separately and added together'
   if (quote.cover_type === 'Family') {
