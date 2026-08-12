@@ -52,7 +52,12 @@ function validateQuote(body) {
     }
   }
 
-  const discount = body.annual_discount === undefined ? 0 : body.annual_discount;
+  // annual_discount is optional on the request - if it's missing, treat it
+  // as 0 for the purposes of this check.
+  let discount = body.annual_discount;
+  if (discount === undefined) {
+    discount = 0;
+  }
   if (!Number.isFinite(discount) || discount < 0 || discount > 10) {
     errors.push('Annual discount must be between 0 and 10.');
   }
@@ -60,14 +65,58 @@ function validateQuote(body) {
   return errors;
 }
 
-// CREATE  ->  POST /api/quotes
-router.post('/', (req, res) => {
-  const errors = validateQuote(req.body);
-  if (errors.length > 0) {
-    return res.status(400).json({ errors });
+// A few fields are optional depending on cover type (applicant2_*) or just
+// optional in general (annual_discount, notes). This turns a request body
+// into the exact set of values the database needs, filling in defaults for
+// anything missing. Both POST and PUT need this, so it lives in one place
+// instead of being copy-pasted into each route.
+function buildQuoteValues(body) {
+  let applicant2_age = null;
+  if (body.applicant2_age !== undefined && body.applicant2_age !== null) {
+    applicant2_age = body.applicant2_age;
   }
 
-  const b = req.body;
+  let applicant2_cover_history = null;
+  if (body.applicant2_cover_history !== undefined && body.applicant2_cover_history !== null) {
+    applicant2_cover_history = body.applicant2_cover_history;
+  }
+
+  let annual_discount = 0;
+  if (body.annual_discount !== undefined && body.annual_discount !== null) {
+    annual_discount = body.annual_discount;
+  }
+
+  let notes = null;
+  if (body.notes !== undefined && body.notes !== null) {
+    notes = body.notes;
+  }
+
+  return {
+    customer_name: body.customer_name,
+    cover_type: body.cover_type,
+    applicant1_age: body.applicant1_age,
+    applicant1_cover_history: body.applicant1_cover_history,
+    applicant2_age: applicant2_age,
+    applicant2_cover_history: applicant2_cover_history,
+    hospital_cover: body.hospital_cover,
+    extras_cover: body.extras_cover,
+    payment_frequency: body.payment_frequency,
+    annual_discount: annual_discount,
+    notes: notes,
+  };
+}
+
+// CREATE  ->  POST /api/quotes
+router.post('/', function (req, res) {
+  const errors = validateQuote(req.body);
+  if (errors.length > 0) {
+    return res.status(400).json({errors: errors});
+  }
+
+  const values = buildQuoteValues(req.body);
+
+  // The @name placeholders below are matched up against the object's keys
+  // (e.g. @customer_name reads values.customer_name) when we call stmt.run().
   const stmt = db.prepare(`
     INSERT INTO quotes (
       customer_name, cover_type, applicant1_age, applicant1_cover_history,
@@ -80,53 +129,46 @@ router.post('/', (req, res) => {
     )
   `);
 
-  const result = stmt.run({
-    customer_name: b.customer_name,
-    cover_type: b.cover_type,
-    applicant1_age: b.applicant1_age,
-    applicant1_cover_history: b.applicant1_cover_history,
-    applicant2_age: b.applicant2_age ?? null,
-    applicant2_cover_history: b.applicant2_cover_history ?? null,
-    hospital_cover: b.hospital_cover,
-    extras_cover: b.extras_cover,
-    payment_frequency: b.payment_frequency,
-    annual_discount: b.annual_discount ?? 0,
-    notes: b.notes ?? null,
-  });
+  const result = stmt.run(values);
 
   res.status(201).json({id: result.lastInsertRowid});
 });
 
 // LIST  ->  GET /api/quotes
-router.get('/', (req, res) => {
+router.get('/', function (req, res) {
   const rows = db.prepare('SELECT * FROM quotes ORDER BY id DESC').all();
   res.json(rows);
 });
 
 // DETAIL  ->  GET /api/quotes/:id  — the only route that calls pricing.js
-router.get('/:id', (req, res) => {
+router.get('/:id', function (req, res) {
   const row = db.prepare('SELECT * FROM quotes WHERE id = ?').get(req.params.id);
   if (!row) {
-    return res.status(404).json({ errors: ['Quote not found.'] });
+    return res.status(404).json({errors: ['Quote not found.']});
   }
 
   const breakdown = calculateQuote(row);
-  res.json({...row, breakdown});
+
+  // {...row} copies every stored column (customer_name, cover_type, etc.)
+  // into a new object, then we add the calculated breakdown alongside them.
+  res.json({...row, breakdown: breakdown});
 });
 
 // UPDATE  ->  PUT /api/quotes/:id
-router.put('/:id', (req, res) => {
+router.put('/:id', function (req, res) {
   const existing = db.prepare('SELECT id FROM quotes WHERE id = ?').get(req.params.id);
   if (!existing) {
-    return res.status(404).json({ errors: ['Quote not found.'] });
+    return res.status(404).json({errors: ['Quote not found.']});
   }
 
   const errors = validateQuote(req.body);
   if (errors.length > 0) {
-    return res.status(400).json({errors});
+    return res.status(400).json({errors: errors});
   }
 
-  const b = req.body;
+  const values = buildQuoteValues(req.body);
+  values.id = req.params.id;
+
   db.prepare(`
     UPDATE quotes SET
       customer_name = @customer_name,
@@ -141,26 +183,13 @@ router.put('/:id', (req, res) => {
       annual_discount = @annual_discount,
       notes = @notes
     WHERE id = @id
-  `).run({
-    id: req.params.id,
-    customer_name: b.customer_name,
-    cover_type: b.cover_type,
-    applicant1_age: b.applicant1_age,
-    applicant1_cover_history: b.applicant1_cover_history,
-    applicant2_age: b.applicant2_age ?? null,
-    applicant2_cover_history: b.applicant2_cover_history ?? null,
-    hospital_cover: b.hospital_cover,
-    extras_cover: b.extras_cover,
-    payment_frequency: b.payment_frequency,
-    annual_discount: b.annual_discount ?? 0,
-    notes: b.notes ?? null,
-  });
+  `).run(values);
 
   res.json({updated: true});
 });
 
 // DELETE  ->  DELETE /api/quotes/:id
-router.delete('/:id', (req, res) => {
+router.delete('/:id', function (req, res) {
   const result = db.prepare('DELETE FROM quotes WHERE id = ?').run(req.params.id);
   if (result.changes === 0) {
     return res.status(404).json({errors: ['Quote not found.']});

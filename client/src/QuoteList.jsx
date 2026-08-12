@@ -4,6 +4,7 @@ import { Link } from 'react-router'
 function QuoteList() {
 const [quotes, setQuotes] = useState([])
 
+// [] means "run once, when the page first loads"
 useEffect(() => {
     fetch('/api/quotes')
     .then(res => res.json())
@@ -14,6 +15,7 @@ return (
     <div>
     <h1>Quotes</h1>
     <Link to="/new">New quote</Link>
+
     <ul>
         {quotes.map(q => (
         <li key={q.id}>
